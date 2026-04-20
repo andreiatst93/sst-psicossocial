@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SST Psicossocial — ARM Previne</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--blue:#1a3a5c;--blue2:#0f2645;--blue-lt:#e0f2fe;--green:#166534;--green-lt:#d1fae5;--amber:#92400e;--amber-lt:#fef3c7;--red:#991b1b;--red-lt:#fee2e2;--crit:#dc2626;--gray:#64748b;--border:#e2e8f0;--bg:#f1f5f9;--white:#fff}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);min-height:100vh;color:#1e293b}
+/* ── UTILS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+.btn:active{transform:scale(.97)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-p{background:var(--blue);color:#fff}.btn-p:hover{background:var(--blue2)}
+.btn-g{background:var(--green);color:var(--green-lt)}.btn-g:hover{background:#14532d}
+.btn-a{background:var(--amber);color:var(--amber-lt)}.btn-a:hover{background:#78350f}
+.btn-r{background:var(--red);color:var(--red-lt)}.btn-r:hover{background:#7f1d1d}
+.btn-gray{background:#e2e8f0;color:#374151}.btn-gray:hover{background:#cbd5e1}
+.btn-out{background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.3)}.btn-out:hover{background:rgba(255,255,255,.22)}
+.card{background:var(--white);border:0.5px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:14px}
+.tag{display:inline-flex;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.tb{background:var(--green-lt);color:var(--green)}
+.tm{background:var(--amber-lt);color:var(--amber)}
+.ta{background:var(--red-lt);color:var(--red)}
+.tc{background:var(--crit);color:#fff}
+.err-box{background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:13px;color:var(--red);margin-bottom:12px;line-height:1.5}
+.ok-box{background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 14px;font-size:13px;color:var(--green);margin-bottom:12px}
+.spin{width:18px;height:18px;border:2px solid #bfdbfe;border-top-color:var(--blue);border-radius:50%;animation:sp .7s linear infinite;display:inline-block;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:600px){.g2{grid-template-columns:1fr}.g4{grid-template-columns:1fr 1fr}}
+@media(max-width:360px){.g4{grid-template-columns:1fr}}
+/* ── SELECTOR ── */
+#selector{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 20px}
+.sel-logo{width:60px;height:60px;background:var(--blue);border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.sel-cards{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;width:100%;max-width:560px;margin-top:24px}
+.sel-card{flex:1;min-width:220px;max-width:260px;cursor:pointer;transition:transform .15s;border-radius:12px}
+.sel-card:hover{transform:translateY(-2px)}
+/* ── FORM ── */
+#form-wrap{background:var(--bg);min-height:100vh;padding-bottom:24px}
+.fhdr{background:var(--blue);color:#fff;padding:16px 18px 14px}
+.flogo-txt{font-size:10px;font-weight:700;letter-spacing:.08em;opacity:.65;margin-bottom:5px}
+.ftitle{font-size:17px;font-weight:700;line-height:1.3;margin-bottom:4px}
+.fsub{font-size:11px;opacity:.7;line-height:1.5}
+.pbar{height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin-top:10px}
+.pfill{height:100%;background:#38bdf8;border-radius:2px;transition:width .35s}
+.prow{display:flex;justify-content:space-between;margin-top:4px}
+.ptxt{font-size:10px;opacity:.65}
+.sec-card{background:#fff;border-radius:10px;margin:12px 14px 0;border:0.5px solid #dde3ea;overflow:hidden}
+.sec-hdr{padding:12px 16px 10px;border-bottom:0.5px solid #f1f4f7}
+.sec-tag{display:inline-flex;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:20px;margin-bottom:6px}
+.sec-ttl{font-size:14px;font-weight:700;color:var(--blue)}
+.sec-desc{font-size:11px;color:var(--gray);margin-top:3px;line-height:1.5}
+.qblock{padding:12px 16px;border-bottom:0.5px solid #f8fafc}
+.qblock:last-child{border-bottom:none}
+.qnum{font-size:9px;font-weight:700;color:#94a3b8;margin-bottom:3px;letter-spacing:.04em}
+.qlbl{font-size:12px;font-weight:600;color:#1e293b;margin-bottom:8px;line-height:1.5}
+.req{color:#e53e3e}
+.freq-row{display:flex;gap:4px;flex-wrap:wrap}
+.fbtn{flex:1;min-width:50px;padding:8px 4px;border-radius:7px;border:1.5px solid #e2e8f0;background:#f8fafc;font-size:10px;font-weight:600;color:var(--gray);cursor:pointer;text-align:center;transition:all .12s;line-height:1.3}
+.fbtn:hover{border-color:#3b82f6;color:#1d4ed8}
+.fbtn.sel{border-color:var(--blue);background:var(--blue);color:#fff}
+.scl{display:flex;justify-content:space-between;margin-top:3px}
+.scl span{font-size:9px;color:#94a3b8}
+.copts{display:flex;flex-direction:column;gap:6px}
+.cbtn{padding:9px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#f8fafc;font-size:12px;color:#374151;cursor:pointer;transition:all .12s}
+.cbtn:hover{border-color:#3b82f6;background:#eff6ff}
+.cbtn.sel{border-color:var(--blue);background:#f0f5fa;color:var(--blue);font-weight:600}
+.cbtn.sel::before{content:'✓ ';color:var(--blue)}
+.star-row{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.sbtn{width:40px;height:40px;border-radius:7px;border:1.5px solid #e2e8f0;background:#f8fafc;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;flex-shrink:0}
+.sbtn.sel{background:#fef08a;border-color:#ca8a04}
+.slbl{font-size:11px;color:var(--gray);margin-left:4px}
+.id-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 16px 4px}
+@media(max-width:400px){.id-grid{grid-template-columns:1fr}}
+.flabel{font-size:10px;font-weight:700;color:var(--gray);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.04em}
+input[type=text],input[type=password],select,textarea{width:100%;padding:9px 11px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:13px;color:#1e293b;font-family:inherit;background:#f8fafc;outline:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);background:#fff}
+.qerr{background:#fff5f5!important}
+.ierr{border-color:#fca5a5!important;background:#fff5f5!important}
+.sub-wrap{margin:12px 14px 0;background:#fff;border-radius:10px;border:0.5px solid #dde3ea;padding:16px}
+.sub-btn{width:100%;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
+.sub-btn:hover:not(:disabled){background:var(--blue2)}
+.sub-btn:disabled{background:#94a3b8;cursor:not-allowed}
+.ok-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;min-height:320px}
+.ok-icon{width:64px;height:64px;background:#dcfce7;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:28px}
+/* ── ADMIN ── */
+#admin-wrap{background:var(--bg);min-height:100vh}
+.ahdr{background:#0c2340;color:#fff;padding:0 20px;display:flex;align-items:center;gap:12px;height:52px;position:sticky;top:0;z-index:50}
+.alogo{width:30px;height:30px;background:#185fa5;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;flex-shrink:0}
+.atabs{display:flex;gap:0;border-bottom:0.5px solid var(--border);overflow-x:auto;background:#fff;padding:0 16px}
+.atab{padding:10px 14px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:none;color:var(--gray);border-bottom:2.5px solid transparent;white-space:nowrap;font-family:inherit;transition:all .15s}
+.atab:hover{color:#1e293b}
+.atab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.acontent{padding:16px;max-width:1000px;margin:0 auto}
+.ptitle{font-size:16px;font-weight:700;color:#1e293b;margin-bottom:2px}
+.psub{font-size:12px;color:var(--gray);margin-bottom:14px}
+.metric{background:#f8fafc;border-radius:8px;padding:12px 14px}
+.mval{font-size:22px;font-weight:700;color:#1e293b}
+.mlbl{font-size:10px;color:var(--gray);margin-top:2px}
+.fbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.fbar input,.fbar select{padding:7px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:inherit;background:#fff;outline:none;min-width:120px}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#f8fafc;color:var(--gray);padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;font-weight:700;font-size:11px;white-space:nowrap}
+td{padding:8px 10px;border-bottom:0.5px solid #f1f5f9;color:#374151;vertical-align:middle}
+tr:hover td{background:#f8fafc}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.blbl{font-size:11px;color:var(--gray);width:100px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btrack{flex:1;background:#f1f5f9;border-radius:4px;height:18px;overflow:hidden}
+.bfill{height:100%;border-radius:4px;display:flex;align-items:center;padding:0 5px;font-size:10px;font-weight:700}
+.rmd h1{font-size:15px;font-weight:700;color:#1e293b;margin:14px 0 6px;border-bottom:1px solid var(--border);padding-bottom:5px}
+.rmd h2{font-size:13px;font-weight:700;color:#1e293b;margin:10px 0 4px}
+.rmd h3{font-size:12px;font-weight:600;color:#374151;margin:8px 0 3px}
+.rmd p{font-size:12px;margin-bottom:6px;line-height:1.65;color:#374151}
+.rmd ul,.rmd ol{padding-left:14px;margin-bottom:6px}
+.rmd li{font-size:12px;margin-bottom:2px;color:#374151}
+.rmd strong{font-weight:700;color:#1e293b}
+.rmd table{width:100%;border-collapse:collapse;margin:8px 0;font-size:11px}
+.rmd th{background:#f8fafc;color:var(--gray);padding:5px 8px;border:1px solid var(--border);font-weight:600}
+.rmd td{padding:4px 8px;border:1px solid #f1f5f9;color:#374151}
+.rmd hr{border:none;border-top:1px solid var(--border);margin:10px 0}
+.plan-tbl{width:100%;border-collapse:collapse;font-size:11px}
+.plan-tbl th{background:#f8fafc;padding:7px 8px;border:1px solid var(--border);text-align:left;font-weight:700;color:var(--gray);font-size:10px}
+.plan-tbl td{padding:6px 8px;border:1px solid #f1f5f9;vertical-align:top}
+.plan-tbl input{width:100%;padding:3px 5px;border:1px solid var(--border);border-radius:4px;font-size:11px;font-family:inherit}
+.pa{background:var(--red-lt);color:var(--red);padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700}
+.pm{background:var(--amber-lt);color:var(--amber);padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700}
+.pb{background:var(--green-lt);color:var(--green);padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700}
+.empty{text-align:center;padding:40px 20px;color:#94a3b8;font-size:13px}
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-card{background:#fff;border-radius:14px;border:0.5px solid var(--border);padding:32px;max-width:380px;width:100%;text-align:center}
+.login-icon{width:52px;height:52px;background:var(--blue);border-radius:11px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-weight:700;font-size:14px;color:#fff}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px}
+.modal{background:#fff;border-radius:14px;padding:28px;max-width:480px;width:100%}
+/* ── SETUP ── */
+#setup-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg)}
+.setup-card{background:#fff;border-radius:14px;border:0.5px solid var(--border);padding:32px;max-width:540px;width:100%}
+.step-dot{width:8px;height:8px;border-radius:50%;background:var(--blue);display:inline-block;margin:0 3px}
+.setup-step{display:none}.setup-step.active{display:block}
+code{background:#f1f5f9;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:12px;color:var(--blue)}
+.code-block{background:#1e293b;color:#e2e8f0;border-radius:8px;padding:12px 14px;font-family:monospace;font-size:12px;line-height:1.6;margin:8px 0;white-space:pre;overflow-x:auto}
+</style>
+</head>
+<body>
+
+<!-- SETUP WIZARD (aparece se não configurado) -->
+<div id="setup-wrap" style="display:none">
+  <div class="setup-card">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:22px;font-weight:700;color:#1e293b;margin-bottom:6px">Configuração Inicial</div>
+      <div style="font-size:13px;color:var(--gray)">Configure o banco de dados para começar</div>
+    </div>
+
+    <div id="setup-step-1" class="setup-step active">
+      <div style="font-size:15px;font-weight:700;margin-bottom:12px">Passo 1 — Criar banco de dados no Supabase</div>
+      <div style="font-size:13px;color:var(--gray);line-height:1.7;margin-bottom:14px">
+        1. Acesse <strong>supabase.com</strong> e crie uma conta gratuita<br>
+        2. Clique em <strong>"New Project"</strong><br>
+        3. Escolha um nome, senha e região<br>
+        4. Aguarde criar (≈1 min)<br>
+        5. Vá em <strong>SQL Editor</strong> e execute o SQL abaixo:
+      </div>
+      <div class="code-block">CREATE TABLE respostas (
+  id TEXT PRIMARY KEY,
+  empresa TEXT,
+  setor TEXT,
+  funcao TEXT,
+  atividade TEXT,
+  tempo TEXT,
+  respostas JSONB,
+  scores JSONB,
+  data TEXT,
+  hora TEXT,
+  timestamp BIGINT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE respostas ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow_insert" ON respostas FOR INSERT WITH CHECK (true);
+CREATE POLICY "allow_select" ON respostas FOR SELECT USING (true);</div>
+      <button class="btn btn-p" style="margin-top:12px;width:100%;justify-content:center" onclick="nextSetup(2)">Feito, próximo passo →</button>
+    </div>
+
+    <div id="setup-step-2" class="setup-step">
+      <div style="font-size:15px;font-weight:700;margin-bottom:12px">Passo 2 — Inserir as credenciais</div>
+      <div style="font-size:13px;color:var(--gray);line-height:1.7;margin-bottom:14px">
+        No Supabase, vá em <strong>Settings → API</strong> e copie:<br>
+        — <strong>Project URL</strong><br>
+        — <strong>anon public key</strong>
+      </div>
+      <div style="margin-bottom:12px">
+        <label class="flabel">Supabase Project URL</label>
+        <input type="text" id="sb-url" placeholder="https://xxxxxxxxxxx.supabase.co"/>
+      </div>
+      <div style="margin-bottom:16px">
+        <label class="flabel">Supabase Anon Key</label>
+        <input type="text" id="sb-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."/>
+      </div>
+      <div id="cred-err" class="err-box" style="display:none"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-gray" onclick="nextSetup(1)">← Voltar</button>
+        <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveCredentials()">Salvar e Testar Conexão</button>
+      </div>
+    </div>
+
+    <div id="setup-step-3" class="setup-step">
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:40px;margin-bottom:12px">✅</div>
+        <div style="font-size:17px;font-weight:700;color:var(--green);margin-bottom:8px">Conexão estabelecida!</div>
+        <div style="font-size:13px;color:var(--gray);line-height:1.6;margin-bottom:20px">O sistema está pronto para uso. Agora publique no Vercel para acesso externo.</div>
+        <button class="btn btn-p" style="width:100%;justify-content:center" onclick="initApp()">Abrir o Sistema →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SELECTOR -->
+<div id="selector" style="display:none">
+  <div class="sel-logo">
+    <svg width="30" height="30" fill="none" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <div style="font-size:22px;font-weight:700;color:#1e293b;text-align:center;margin-bottom:6px">Sistema SST — Riscos Psicossociais</div>
+  <div style="font-size:13px;color:var(--gray);text-align:center;max-width:400px;line-height:1.6">Plataforma de avaliação baseada na NR-1 Cap. 1.5 · ARM Previne</div>
+  <div id="sel-count" style="font-size:12px;color:#94a3b8;margin-top:8px;text-align:center"></div>
+  <div class="sel-cards">
+    <div class="card sel-card" style="border-color:#93c5fd" onclick="showForm()">
+      <div style="font-size:10px;font-weight:700;color:#1d4ed8;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Funcionário</div>
+      <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:6px">Formulário de Avaliação</div>
+      <div style="font-size:12px;color:var(--gray);line-height:1.6;margin-bottom:14px">Responda à pesquisa de riscos psicossociais da sua empresa</div>
+      <button class="btn btn-p" style="width:100%;justify-content:center">Acessar Formulário</button>
+    </div>
+    <div class="card sel-card" onclick="showAdminLogin()">
+      <div style="font-size:10px;font-weight:700;color:var(--gray);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Restrito</div>
+      <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:6px">Painel Administrativo</div>
+      <div style="font-size:12px;color:var(--gray);line-height:1.6;margin-bottom:14px">Gestores e responsáveis pela SST</div>
+      <button class="btn btn-gray" style="width:100%;justify-content:center">Acessar Painel</button>
+    </div>
+  </div>
+</div>
+
+<!-- FORMULÁRIO -->
+<div id="form-wrap" style="display:none"></div>
+
+<!-- ADMIN -->
+<div id="admin-wrap" style="display:none"></div>
+
+<!-- ADMIN LOGIN MODAL -->
+<div id="login-modal" style="display:none">
+  <div class="modal-bg">
+    <div class="modal">
+      <div style="text-align:center;margin-bottom:20px">
+        <div class="login-icon">ADM</div>
+        <div style="font-size:17px;font-weight:700;color:#1e293b;margin-bottom:4px">Acesso Administrativo</div>
+        <div style="font-size:12px;color:var(--gray)">Restrito a gestores e responsáveis pela SST</div>
+      </div>
+      <div id="login-err" class="err-box" style="display:none"></div>
+      <div style="margin-bottom:14px">
+        <label class="flabel">Senha de acesso</label>
+        <input type="password" id="adm-pw" placeholder="Digite a senha" onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-gray" style="flex:1;justify-content:center" onclick="closeLoginModal()">Cancelar</button>
+        <button class="btn btn-p" style="flex:1;justify-content:center" onclick="doLogin()">Entrar</button>
+      </div>
+      <div style="font-size:11px;color:#94a3b8;text-align:center;margin-top:12px">Senha padrão: <strong>admin123</strong></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──
+const ADMIN_PASS = typeof __ADMIN_PASS__ !== 'undefined' ? __ADMIN_PASS__ : 'admin123';
+const SMAP = {Nunca:1,Raramente:2,'Às vezes':3,Frequentemente:4,Sempre:5};
+const SLBLS = ['','Muito insatisfeito','Insatisfeito','Regular','Satisfeito','Muito satisfeito'];
+const FREQ = ['Nunca','Raramente','Às vezes','Frequentemente','Sempre'];
+
+// ── SUPABASE ──
+let supabase = null;
+
+function initSupabase(url, key) {
+  try {
+    supabase = window.supabase.createClient(url, key);
+    return true;
+  } catch(e) { return false; }
+}
+
+async function testConnection() {
+  const { error } = await supabase.from('respostas').select('id').limit(1);
+  return !error;
+}
+
+// ── SETUP ──
+function nextSetup(n) {
+  document.querySelectorAll('.setup-step').forEach(el => el.classList.remove('active'));
+  document.getElementById(`setup-step-${n}`).classList.add('active');
+}
+
+async function saveCredentials() {
+  const url = document.getElementById('sb-url').value.trim();
+  const key = document.getElementById('sb-key').value.trim();
+  const err = document.getElementById('cred-err');
+  if (!url || !key) { err.style.display='block'; err.textContent='Preencha os dois campos.'; return; }
+  if (!initSupabase(url, key)) { err.style.display='block'; err.textContent='URL ou Key inválidos.'; return; }
+  err.style.display='none';
+  const ok = await testConnection().catch(() => false);
+  if (!ok) { err.style.display='block'; err.textContent='Não foi possível conectar. Verifique as credenciais e se a tabela foi criada.'; return; }
+  // Persiste localmente para reuso sem re-digitar
+  try { localStorage.setItem('sst_sb_url', url); localStorage.setItem('sst_sb_key', key); } catch {}
+  nextSetup(3);
+}
+
+// ── QUESTIONS DEF ──
+const SECS = [
+  {id:'id',tag:'Identificação',c:'#e0f2fe',tc:'#0369a1',title:'Dados de Identificação',desc:'Preencha os dados do seu setor para categorização da pesquisa.',questions:[
+    {id:'empresa',label:'Empresa',type:'text',ph:'Nome da empresa',req:true},
+    {id:'setor',label:'Setor / GHE',type:'text',ph:'Ex: Produção, SSMA...',req:true},
+    {id:'funcao',label:'Função',type:'text',ph:'Seu cargo',req:true},
+    {id:'atividade',label:'Tipo de atividade',type:'choice',opts:['Administrativo','Operacional','Manutenção','Construção Civil','Logística'],req:true},
+    {id:'tempo',label:'Tempo na função',type:'choice',opts:['< 1 ano','1 a 3 anos','3 a 5 anos','> 5 anos'],req:true},
+  ]},
+  {id:'demandas',tag:'Seção 1',c:'#fef3c7',tc:'#92400e',title:'Demandas do Trabalho',desc:'Avalie a intensidade das exigências do seu trabalho.',questions:[
+    {id:'d1',label:'O volume de trabalho é excessivo para o tempo disponível?',type:'freq',req:true},
+    {id:'d2',label:'Você precisa trabalhar muito rápido para dar conta das tarefas?',type:'freq',req:true},
+    {id:'d3',label:'Seu trabalho exige concentração intensa por longos períodos?',type:'freq',req:true},
+    {id:'d4',label:'O trabalho exige lidar com situações emocionalmente difíceis?',type:'freq',req:true},
+    {id:'d5',label:'Você precisa realizar várias tarefas ao mesmo tempo?',type:'freq',req:true},
+    {id:'d6',label:'Interrupções ou imprevistos dificultam a execução das tarefas?',type:'freq',req:true},
+  ]},
+  {id:'controle',tag:'Seção 2',c:'#e0fdf4',tc:'#065f46',title:'Controle e Autonomia',desc:'Avalie seu grau de controle sobre o trabalho.',questions:[
+    {id:'c1',label:'Você tem autonomia para decidir como executar suas tarefas?',type:'freq',req:true},
+    {id:'c2',label:'Você consegue organizar o ritmo do seu trabalho?',type:'freq',req:true},
+    {id:'c3',label:'Você pode sugerir melhorias no trabalho?',type:'freq',req:true},
+    {id:'c4',label:'Você tem liberdade para resolver problemas das tarefas?',type:'freq',req:true},
+  ]},
+  {id:'organizacao',tag:'Seção 3',c:'#ede9fe',tc:'#4c1d95',title:'Organização do Trabalho',desc:'Avalie como as atividades são planejadas.',questions:[
+    {id:'o1',label:'As atividades que você realiza estão claramente definidas?',type:'freq',req:true},
+    {id:'o2',label:'Existe planejamento adequado das atividades?',type:'freq',req:true},
+    {id:'o3',label:'O número de trabalhadores é suficiente para as tarefas?',type:'freq',req:true},
+    {id:'o4',label:'As metas ou prazos são realistas?',type:'freq',req:true},
+  ]},
+  {id:'apoio',tag:'Seção 4',c:'#fce7f3',tc:'#831843',title:'Apoio da Liderança',desc:'Avalie o suporte recebido da sua chefia.',questions:[
+    {id:'a1',label:'Sua liderança oferece apoio quando surgem dificuldades?',type:'freq',req:true},
+    {id:'a2',label:'As orientações recebidas da liderança são claras?',type:'freq',req:true},
+    {id:'a3',label:'Sua liderança demonstra interesse pelo bem-estar da equipe?',type:'freq',req:true},
+  ]},
+  {id:'relacoes',tag:'Seção 5',c:'#fff7ed',tc:'#9a3412',title:'Relações Socioprofissionais',desc:'Avalie a qualidade das relações com colegas.',questions:[
+    {id:'r1',label:'Existe colaboração entre colegas de trabalho?',type:'freq',req:true},
+    {id:'r2',label:'O ambiente de trabalho é respeitoso?',type:'freq',req:true},
+    {id:'r3',label:'Conflitos entre colegas ocorrem com frequência?',type:'freq',req:true},
+    {id:'r4',label:'Você se sente confortável para pedir ajuda?',type:'freq',req:true},
+  ]},
+  {id:'papel',tag:'Seção 6',c:'#f0fdf4',tc:'#14532d',title:'Papel e Responsabilidades',desc:'Avalie a clareza sobre suas funções.',questions:[
+    {id:'p1',label:'Você sabe exatamente o que é esperado do seu trabalho?',type:'freq',req:true},
+    {id:'p2',label:'Existem conflitos ou sobreposição de responsabilidades?',type:'freq',req:true},
+    {id:'p3',label:'Mudanças nas tarefas são comunicadas adequadamente?',type:'freq',req:true},
+  ]},
+  {id:'mudancas',tag:'Seção 7',c:'#eff6ff',tc:'#1e40af',title:'Gestão de Mudanças',desc:'Avalie como a empresa comunica mudanças.',questions:[
+    {id:'m1',label:'Mudanças no trabalho são comunicadas com antecedência?',type:'freq',req:true},
+    {id:'m2',label:'Os trabalhadores participam das decisões sobre mudanças?',type:'freq',req:true},
+  ]},
+  {id:'saude',tag:'Seção 8',c:'#fef2f2',tc:'#7f1d1d',title:'Saúde e Bem-estar',desc:'Avalie o impacto do trabalho na sua saúde.',questions:[
+    {id:'s1',label:'Ao final da jornada você se sente mentalmente esgotado?',type:'freq',req:true},
+    {id:'s2',label:'O trabalho causa estresse com frequência?',type:'freq',req:true},
+    {id:'s3',label:'Você tem dificuldade de desligar do trabalho após o expediente?',type:'freq',req:true},
+    {id:'s4',label:'Você se sente satisfeito com seu trabalho de forma geral?',type:'freq',req:true},
+  ]},
+  {id:'condicoes',tag:'Seção 9',c:'#f1f5f9',tc:'#334155',title:'Condições Organizacionais',desc:'Avalie as condições gerais da organização.',questions:[
+    {id:'co1',label:'Falhas de comunicação prejudicam a realização das tarefas?',type:'freq',req:true},
+    {id:'co2',label:'Existe pressão excessiva por produtividade?',type:'freq',req:true},
+    {id:'co3',label:'O trabalho interfere negativamente na vida pessoal?',type:'freq',req:true},
+  ]},
+  {id:'geral',tag:'Final',c:'#f5f3ff',tc:'#4c1d95',title:'Avaliação Geral',desc:'Sua percepção geral sobre o ambiente.',questions:[
+    {id:'satisfacao',label:'Como você avalia seu nível de satisfação com o ambiente de trabalho?',type:'stars',req:true},
+  ]},
+];
+const ALLQ = SECS.flatMap(s => s.questions);
+const REQQ = ALLQ.filter(q => q.req);
+const GIDS = {Demandas:['d1','d2','d3','d4','d5','d6'],Controle:['c1','c2','c3','c4'],Organização:['o1','o2','o3','o4'],Apoio:['a1','a2','a3'],Relações:['r1','r2','r3','r4'],Papel:['p1','p2','p3'],Mudanças:['m1','m2'],Saúde:['s1','s2','s3','s4'],Condições:['co1','co2','co3']};
+
+// ── STATE ──
+let ans={}, submitted=false, submitting=false, formErr='', savedId='';
+let adminTab='dashboard', respostas=[], filtro={emp:'',setor:'',data:''};
+let relatorio='', planoAcao=[], riscos=[], loading={rel:false,plano:false,risco:false};
+let charts={};
+
+// ── BOOT ──
+window.addEventListener('load', () => {
+  // Lê credenciais das variáveis de ambiente Vite (build-time)
+  // Em produção: defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY na Vercel
+  const url = typeof __SUPABASE_URL__ !== 'undefined' ? __SUPABASE_URL__ : '';
+  const key = typeof __SUPABASE_KEY__ !== 'undefined' ? __SUPABASE_KEY__ : '';
+  if (url && key && initSupabase(url, key)) {
+    initApp();
+  } else {
+    // Fallback: wizard manual (para desenvolvimento local sem .env)
+    document.getElementById('setup-wrap').style.display = 'flex';
+  }
+});
+
+async function initApp() {
+  hide('setup-wrap');
+  show('selector');
+  // count
+  try {
+    const { count } = await supabase.from('respostas').select('*', {count:'exact',head:true});
+    const el = document.getElementById('sel-count');
+    if (el && count > 0) el.textContent = `${count} avaliações já realizadas`;
+  } catch {}
+}
+
+// ── NAV ──
+function show(id) { const el=document.getElementById(id); if(el) el.style.display='block'; }
+function hide(id) { const el=document.getElementById(id); if(el) el.style.display='none'; }
+function showAll(ids) { ids.forEach(show); }
+function hideAll(ids) { ids.forEach(hide); }
+
+function showForm() {
+  hide('selector'); ans={}; submitted=false; formErr=''; savedId='';
+  show('form-wrap');
+  renderForm();
+}
+
+function showAdminLogin() {
+  document.getElementById('adm-pw').value = '';
+  document.getElementById('login-err').style.display = 'none';
+  document.getElementById('login-modal').style.display = 'block';
+}
+function closeLoginModal() { document.getElementById('login-modal').style.display = 'none'; }
+
+function doLogin() {
+  const pw = document.getElementById('adm-pw').value;
+  const err = document.getElementById('login-err');
+  if (pw === ADMIN_PASS) {
+    closeLoginModal();
+    hide('selector');
+    show('admin-wrap');
+    adminTab = 'dashboard';
+    loadRespostas();
+  } else {
+    err.style.display = 'block';
+    err.textContent = 'Senha incorreta.';
+  }
+}
+
+function backToSelector() {
+  hideAll(['form-wrap','admin-wrap']);
+  show('selector');
+  initApp();
+}
+
+// ── FORM RENDER ──
+function calcAnswered() { return REQQ.filter(q => ans[q.id]!==undefined && ans[q.id]!=='').length; }
+
+function renderForm() {
+  const wrap = document.getElementById('form-wrap');
+  if (!wrap) return;
+  if (submitted) {
+    wrap.innerHTML = `<div style="background:var(--bg);min-height:100vh;padding:14px">
+      <div class="sec-card"><div class="ok-screen">
+        <div class="ok-icon">✓</div>
+        <div style="font-size:18px;font-weight:700;color:var(--green);margin-bottom:8px">Enviado com sucesso!</div>
+        <div style="font-size:13px;color:#374151;line-height:1.6;max-width:340px;text-align:center">Suas respostas foram registradas no banco de dados e já estão disponíveis no Painel Administrativo.</div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:10px;font-family:monospace">ID: ${savedId}</div>
+        <button class="btn btn-g" style="margin-top:20px" onclick="ans={};submitted=false;formErr='';savedId='';renderForm()">Responder novamente</button>
+        <button class="btn btn-gray btn-sm" style="margin-top:8px" onclick="backToSelector()">Voltar ao início</button>
+      </div></div>
+    </div>`;
+    return;
+  }
+
+  const tot = REQQ.length, done = calcAnswered(), pct = Math.round((done/tot)*100);
+  let html = `<div style="background:var(--bg);min-height:100vh;padding-bottom:20px">
+  <div class="fhdr">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+      <div class="flogo-txt">SST · NR-1 CAP. 1.5 · ARM PREVINE</div>
+      <button class="btn btn-out btn-sm" onclick="backToSelector()">← Início</button>
+    </div>
+    <div class="ftitle">Avaliação de Riscos Psicossociais no Trabalho</div>
+    <div class="fsub">Respostas anônimas e confidenciais · Preencha com base na sua experiência real</div>
+    <div class="pbar"><div class="pfill" id="pfill" style="width:${pct}%"></div></div>
+    <div class="prow"><span class="ptxt" id="ptxt1">${done} de ${tot} respondidas</span><span class="ptxt" id="ptxt2">${pct}%</span></div>
+  </div><div style="padding:0 0 8px">`;
+
+  let qn = 0;
+  SECS.forEach(sec => {
+    html += `<div class="sec-card"><div class="sec-hdr">
+      <div class="sec-tag" style="background:${sec.c};color:${sec.tc}">${sec.tag}</div>
+      <div class="sec-ttl">${sec.title}</div>
+      ${sec.desc ? `<div class="sec-desc">${sec.desc}</div>` : ''}
+    </div>`;
+
+    if (sec.id === 'id') {
+      const texts = sec.questions.filter(q => q.type==='text');
+      const choices = sec.questions.filter(q => q.type!=='text');
+      html += `<div class="id-grid">${texts.map(q => `<div><label class="flabel">${q.label} *</label><input type="text" id="txt-${q.id}" data-qid="${q.id}" placeholder="${q.ph||''}" value="${(ans[q.id]||'').replace(/"/g,'&quot;')}" autocomplete="off"/></div>`).join('')}</div>`;
+      choices.forEach(q => {
+        html += `<div style="padding:4px 16px 12px"><label class="flabel">${q.label} *</label><div class="copts">${q.opts.map(o => `<div class="cbtn${ans[q.id]===o?' sel':''}" data-qid="${q.id}" data-val="${o}">${o}</div>`).join('')}</div></div>`;
+      });
+    } else {
+      sec.questions.forEach(q => {
+        qn++;
+        html += `<div class="qblock" id="qw-${q.id}"><div class="qnum">Pergunta ${qn}</div><div class="qlbl">${q.label}${q.req?'<span class="req"> *</span>':''}</div>`;
+        if (q.type==='freq') {
+          html += `<div class="freq-row">${FREQ.map(f => `<div class="fbtn${ans[q.id]===f?' sel':''}" data-qid="${q.id}" data-val="${f}">${f}</div>`).join('')}</div><div class="scl"><span>Nunca</span><span>Sempre</span></div>`;
+        } else if (q.type==='stars') {
+          const v = ans[q.id]||0;
+          html += `<div class="star-row">${[1,2,3,4,5].map(n => `<div class="sbtn${v>=n?' sel':''}" data-qid="${q.id}" data-val="${n}">${v>=n?'★':'☆'}</div>`).join('')}<span class="slbl" id="slbl-${q.id}">${v?SLBLS[v]:'Selecione'}</span></div>`;
+        }
+        html += `</div>`;
+      });
+    }
+    html += `</div>`;
+  });
+
+  html += `<div class="sub-wrap" id="sub-wrap">
+    ${formErr ? `<div class="err-box">${formErr}</div>` : ''}
+    <div style="font-size:11px;color:var(--gray);margin-bottom:12px;line-height:1.5">Ao enviar, confirmo que as respostas refletem minha experiência real no trabalho.</div>
+    <button class="sub-btn" id="sub-btn" onclick="submitForm()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Enviar Respostas
+    </button>
+  </div></div></div>`;
+
+  wrap.innerHTML = html;
+  bindFormEvents();
+  updateProg();
+}
+
+function bindFormEvents() {
+  const wrap = document.getElementById('form-wrap');
+  if (!wrap) return;
+  wrap.addEventListener('click', e => {
+    const btn = e.target.closest('[data-val][data-qid]');
+    if (!btn) return;
+    const qid = btn.dataset.qid, val = btn.dataset.val;
+    const q = ALLQ.find(x => x.id===qid);
+    if (!q) return;
+    if (q.type==='freq') {
+      ans[qid] = val;
+      wrap.querySelectorAll(`.fbtn[data-qid="${qid}"]`).forEach(b => b.classList.toggle('sel', b.dataset.val===val));
+    } else if (q.type==='choice') {
+      ans[qid] = val;
+      wrap.querySelectorAll(`.cbtn[data-qid="${qid}"]`).forEach(b => b.classList.toggle('sel', b.dataset.val===val));
+    } else if (q.type==='stars') {
+      const n = parseInt(val); ans[qid] = n;
+      wrap.querySelectorAll(`.sbtn[data-qid="${qid}"]`).forEach(b => { const bv=parseInt(b.dataset.val); b.classList.toggle('sel',bv<=n); b.textContent=bv<=n?'★':'☆'; });
+      const sl = document.getElementById(`slbl-${qid}`); if (sl) sl.textContent = SLBLS[n]||'';
+    }
+    const w = document.getElementById(`qw-${qid}`); if (w) w.classList.remove('qerr');
+    updateProg();
+  });
+  wrap.addEventListener('input', e => {
+    const inp = e.target.closest('input[data-qid]'); if (!inp) return;
+    ans[inp.dataset.qid] = inp.value;
+    inp.classList.remove('ierr');
+    updateProg();
+  });
+}
+
+function updateProg() {
+  const tot=REQQ.length, done=calcAnswered(), pct=Math.round((done/tot)*100);
+  const f=document.getElementById('pfill'); if(f) f.style.width=pct+'%';
+  const t1=document.getElementById('ptxt1'); if(t1) t1.textContent=`${done} de ${tot} respondidas`;
+  const t2=document.getElementById('ptxt2'); if(t2) t2.textContent=pct+'%';
+}
+
+function calcScores() {
+  const sc = {};
+  Object.entries(GIDS).forEach(([g,ids]) => {
+    const vals = ids.map(id => SMAP[ans[id]]||0).filter(v=>v>0);
+    sc[g] = vals.length ? Math.round((vals.reduce((a,b)=>a+b,0)/vals.length)*10)/10 : 0;
+  });
+  const all = Object.values(sc).filter(v=>v>0);
+  sc.Geral = all.length ? Math.round((all.reduce((a,b)=>a+b,0)/all.length)*10)/10 : 0;
+  sc.Classificacao = sc.Geral<=2?'Baixo':sc.Geral<=3?'Moderado':sc.Geral<=4?'Alto':'Crítico';
+  return sc;
+}
+
+async function submitForm() {
+  if (submitting) return;
+  const miss = REQQ.filter(q => ans[q.id]===undefined || ans[q.id]==='');
+  if (miss.length) {
+    formErr = `${miss.length} campo${miss.length>1?'s':''} obrigatório${miss.length>1?'s':''} não preenchido${miss.length>1?'s':''}.`;
+    miss.forEach(q => {
+      const w=document.getElementById(`qw-${q.id}`); if(w) w.classList.add('qerr');
+      const i=document.getElementById(`txt-${q.id}`); if(i) i.classList.add('ierr');
+    });
+    rebuildSub();
+    setTimeout(() => miss[0] && document.getElementById(`qw-${miss[0].id}`)?.scrollIntoView({behavior:'smooth',block:'center'}), 100);
+    return;
+  }
+  submitting = true;
+  const btn = document.getElementById('sub-btn');
+  if (btn) { btn.disabled=true; btn.innerHTML='<span class="spin"></span> Salvando...'; }
+  try {
+    const id = `r_${Date.now()}_${Math.random().toString(36).substr(2,6)}`;
+    const entry = {
+      id, empresa:ans.empresa||'', setor:ans.setor||'', funcao:ans.funcao||'',
+      atividade:ans.atividade||'', tempo:ans.tempo||'',
+      respostas:ans, scores:calcScores(),
+      data:new Date().toLocaleDateString('pt-BR'),
+      hora:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+      timestamp:Date.now()
+    };
+    const { error } = await supabase.from('respostas').insert([entry]);
+    if (error) throw new Error(error.message);
+    savedId = id; submitted = true; formErr = ''; renderForm();
+  } catch(ex) {
+    formErr = 'Erro ao salvar: ' + (ex.message||String(ex));
+    rebuildSub();
+    const btn = document.getElementById('sub-btn');
+    if (btn) { btn.disabled=false; btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Enviar Respostas'; }
+  } finally { submitting = false; }
+}
+
+function rebuildSub() {
+  const w = document.getElementById('sub-wrap'); if (!w) return;
+  w.innerHTML = `${formErr?`<div class="err-box">${formErr}</div>`:''}
+    <div style="font-size:11px;color:var(--gray);margin-bottom:12px;line-height:1.5">Ao enviar, confirmo que as respostas refletem minha experiência real no trabalho.</div>
+    <button class="sub-btn" id="sub-btn" onclick="submitForm()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Enviar Respostas
+    </button>`;
+}
+
+// ── ADMIN ──
+async function loadRespostas() {
+  renderAdmin('loading');
+  try {
+    const { data, error } = await supabase.from('respostas').select('*').order('timestamp', {ascending:false});
+    if (error) throw error;
+    respostas = data || [];
+  } catch(e) { respostas = []; }
+  renderAdmin();
+}
+
+function filtradas() {
+  return respostas.filter(r => {
+    if (filtro.emp && !r.empresa?.toLowerCase().includes(filtro.emp.toLowerCase())) return false;
+    if (filtro.setor && r.setor !== filtro.setor) return false;
+    if (filtro.data && !r.data?.includes(filtro.data)) return false;
+    return true;
+  });
+}
+function emps() { return [...new Set(respostas.map(r=>r.empresa).filter(Boolean))].sort(); }
+function setores() { return [...new Set(respostas.map(r=>r.setor).filter(Boolean))].sort(); }
+function gAvg(resp, ids) { const vals=ids.map(id=>SMAP[resp.respostas?.[id]]||0).filter(v=>v>0); return vals.length?Math.round((vals.reduce((a,b)=>a+b,0)/vals.length)*10)/10:0; }
+function lc(g) { if(g<=2)return{bg:'#d1fae5',c:'#065f46',cls:'baixo'}; if(g<=3)return{bg:'#fef3c7',c:'#92400e',cls:'moderado'}; if(g<=4)return{bg:'#fee2e2',c:'#991b1b',cls:'alto'}; return{bg:'#dc2626',c:'#fff',cls:'critico'}; }
+function tcls(cl) { return{Baixo:'tb',Moderado:'tm',Alto:'ta','Crítico':'tc'}[cl]||'tb'; }
+
+function destroyCharts() { Object.values(charts).forEach(c=>{try{c.destroy();}catch{}}); charts={}; }
+
+function renderAdmin(state) {
+  destroyCharts();
+  const wrap = document.getElementById('admin-wrap'); if (!wrap) return;
+  const f = filtradas();
+  const tabDefs = [{id:'dashboard',lbl:'Dashboard'},{id:'respostas',lbl:`Respostas (${f.length})`},{id:'relatorio',lbl:'Relatório IA'},{id:'plano',lbl:'Plano de Ação'},{id:'riscos',lbl:'Caracterização de Risco'}];
+
+  let body = state==='loading' ? `<div class="acontent" style="text-align:center;padding:48px"><span class="spin"></span><div style="font-size:13px;color:var(--gray);margin-top:12px">Carregando respostas...</div></div>` : '';
+  if (!body) {
+    if (adminTab==='dashboard') body = buildDash(f);
+    else if (adminTab==='respostas') body = buildResp(f);
+    else if (adminTab==='relatorio') body = buildRel(f);
+    else if (adminTab==='plano') body = buildPlano(f);
+    else if (adminTab==='riscos') body = buildRiscos(f);
+  }
+
+  wrap.innerHTML = `
+    <div class="ahdr">
+      <div class="alogo">SST</div>
+      <div style="font-size:14px;font-weight:700">Painel Administrativo · ARM Previne</div>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <span style="font-size:11px;opacity:.6">${respostas.length} resp.</span>
+        <button class="btn btn-out btn-sm" onclick="loadRespostas()">↺ Atualizar</button>
+        <button class="btn btn-out btn-sm" onclick="backToSelector()">Sair</button>
+      </div>
+    </div>
+    <div class="atabs">${tabDefs.map(t=>`<button class="atab${adminTab===t.id?' active':''}" onclick="adminTab='${t.id}';renderAdmin()">${t.lbl}</button>`).join('')}</div>
+    ${body}`;
+
+  if (adminTab==='dashboard' && f.length) setTimeout(() => buildCharts(f), 150);
+}
+
+function fBar() {
+  const st = setores();
+  return `<div class="fbar">
+    <input type="text" placeholder="Empresa..." value="${filtro.emp}" oninput="filtro.emp=this.value;renderAdmin()"/>
+    <select onchange="filtro.setor=this.value;renderAdmin()"><option value="">Todos os setores</option>${st.map(s=>`<option${filtro.setor===s?' selected':''}>${s}</option>`).join('')}</select>
+    <input type="text" placeholder="Data dd/mm/aaaa" value="${filtro.data}" oninput="filtro.data=this.value;renderAdmin()"/>
+    <button class="btn btn-gray btn-sm" onclick="filtro={emp:'',setor:'',data:''};renderAdmin()">Limpar</button>
+  </div>`;
+}
+
+function buildDash(f) {
+  if (!f.length) return `<div class="acontent"><div class="ptitle">Dashboard</div>${fBar()}<div class="empty">Nenhuma resposta recebida ainda.<br>Compartilhe o link do formulário com os funcionários.</div></div>`;
+  const cc={Baixo:0,Moderado:0,Alto:0,'Crítico':0};
+  f.forEach(r=>{ const c=r.scores?.Classificacao||'Baixo'; cc[c]=(cc[c]||0)+1; });
+  const altos = (cc.Alto||0)+(cc['Crítico']||0);
+  const gavgs = {};
+  Object.keys(GIDS).forEach(g=>{ const vals=f.map(r=>gAvg(r,GIDS[g])).filter(v=>v>0); gavgs[g]=vals.length?Math.round((vals.reduce((a,b)=>a+b,0)/vals.length)*10)/10:0; });
+  const geralVals = Object.values(gavgs).filter(v=>v>0);
+  const geral = geralVals.length?Math.round((geralVals.reduce((a,b)=>a+b,0)/geralVals.length)*10)/10:0;
+  const geralCls = geral<=2?'Baixo':geral<=3?'Moderado':geral<=4?'Alto':'Crítico';
+
+  return `<div class="acontent">
+    <div class="ptitle">Dashboard</div><div class="psub">Visão consolidada · ${f.length} resposta${f.length>1?'s':''}</div>
+    ${fBar()}
+    <div class="g4" style="margin-bottom:12px">
+      <div class="metric"><div class="mval">${f.length}</div><div class="mlbl">Total de respostas</div></div>
+      <div class="metric"><div class="mval" style="color:var(--red)">${Math.round((altos/f.length)*100)}%</div><div class="mlbl">Alto / Crítico</div></div>
+      <div class="metric"><div class="mval" style="color:var(--green)">${Math.round(((f.length-altos)/f.length)*100)}%</div><div class="mlbl">Baixo / Moderado</div></div>
+      <div class="metric"><div class="mval">${emps().length}</div><div class="mlbl">Empresas</div></div>
+    </div>
+    <div class="card" style="margin-bottom:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div><div style="font-size:11px;color:var(--gray);margin-bottom:2px">Risco geral consolidado</div><div style="font-size:24px;font-weight:700;color:${lc(geral).c}">${geralCls}</div></div>
+      <span class="tag ${tcls(geralCls)}" style="padding:4px 14px;font-size:13px">${geralCls.toUpperCase()}</span>
+      <div style="font-size:12px;color:var(--gray)">Score médio: <strong style="color:#1e293b">${geral}/5</strong></div>
+    </div>
+    <div class="g2" style="margin-bottom:12px">
+      <div class="card"><div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Score por grupo temático</div><div style="height:190px"><canvas id="ch-bar"></canvas></div></div>
+      <div class="card"><div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Distribuição por classificação</div>
+        <div style="display:flex;gap:14px;align-items:center;height:190px">
+          <canvas id="ch-pie" style="max-width:140px"></canvas>
+          <div>${Object.entries(cc).map(([k,v])=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><div style="width:9px;height:9px;border-radius:50%;background:${k==='Baixo'?'#d1fae5':k==='Moderado'?'#fef3c7':k==='Alto'?'#fee2e2':'#dc2626'}"></div><span style="font-size:12px;color:var(--gray)">${k}: <strong style="color:#1e293b">${v}</strong></span></div>`).join('')}</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Score médio por grupo</div>
+      ${Object.entries(gavgs).map(([g,avg])=>{ const l=lc(avg),pct=Math.round((avg/5)*100); return`<div class="bar-row"><div class="blbl">${g}</div><div class="btrack"><div class="bfill" style="width:${Math.max(pct,4)}%;background:${l.bg};color:${l.c}">${avg}</div></div><div style="font-size:11px;color:#94a3b8;min-width:26px;text-align:right">${avg}</div></div>`; }).join('')}
+    </div>
+    <div class="card">
+      <div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Ranking de empresas</div>
+      ${emps().map((e,i)=>{ const re=respostas.filter(r=>r.empresa===e),av=re.map(r=>r.scores?.Geral||0).filter(v=>v>0),ge=av.length?Math.round((av.reduce((a,b)=>a+b,0)/av.length)*10)/10:0,ce=ge<=2?'Baixo':ge<=3?'Moderado':ge<=4?'Alto':'Crítico'; return`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:0.5px solid #f1f5f9"><div style="width:20px;height:20px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--gray);flex-shrink:0">${i+1}</div><div style="flex:1;font-size:13px;font-weight:600">${e}</div><div style="font-size:11px;color:#94a3b8">${re.length} resp.</div><span class="tag ${tcls(ce)}">${ce}</span></div>`; }).join('')}
+    </div>
+  </div>`;
+}
+
+function buildCharts(f) {
+  const gavgs = {};
+  Object.keys(GIDS).forEach(g=>{ const vals=f.map(r=>gAvg(r,GIDS[g])).filter(v=>v>0); gavgs[g]=vals.length?Math.round((vals.reduce((a,b)=>a+b,0)/vals.length)*10)/10:0; });
+  const cc = {Baixo:0,Moderado:0,Alto:0,'Crítico':0};
+  f.forEach(r=>{ const c=r.scores?.Classificacao||'Baixo'; cc[c]=(cc[c]||0)+1; });
+  const c1 = document.getElementById('ch-bar');
+  if (c1 && typeof Chart!=='undefined') { charts.bar=new Chart(c1,{type:'bar',data:{labels:Object.keys(gavgs),datasets:[{data:Object.values(gavgs),backgroundColor:Object.values(gavgs).map(v=>v<=2?'#d1fae5':v<=3?'#fef3c7':v<=4?'#fee2e2':'#dc2626'),borderRadius:4,borderWidth:0}]},options:{plugins:{legend:{display:false}},scales:{y:{min:0,max:5,ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'rgba(0,0,0,.06)'}},x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}}},responsive:true,maintainAspectRatio:false}}); }
+  const c2 = document.getElementById('ch-pie');
+  if (c2 && typeof Chart!=='undefined') { charts.pie=new Chart(c2,{type:'doughnut',data:{labels:Object.keys(cc),datasets:[{data:Object.values(cc),backgroundColor:['#d1fae5','#fef3c7','#fee2e2','#dc2626'],borderWidth:1,borderColor:['#86efac','#fde68a','#fca5a5','#991b1b']}]},options:{plugins:{legend:{display:false}},cutout:'60%',responsive:true,maintainAspectRatio:false}}); }
+}
+
+function buildResp(f) {
+  return `<div class="acontent">
+    <div class="ptitle">Respostas Recebidas</div><div class="psub">${f.length} resposta${f.length!==1?'s':''} encontrada${f.length!==1?'s':''}</div>
+    ${fBar()}
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="btn btn-g btn-sm" onclick="exportCSV()">⬇ Exportar CSV</button>
+      <button class="btn btn-gray btn-sm" onclick="clearAll()">🗑 Limpar tudo</button>
+    </div>
+    ${!f.length?`<div class="empty">Nenhuma resposta encontrada.</div>`:`
+    <div class="card" style="padding:0">
+      <div class="tbl-wrap">
+        <table><thead><tr><th>#</th><th>Empresa</th><th>Setor</th><th>Função</th><th>Atividade</th><th>Data</th><th>Hora</th><th>Risco</th><th>Score</th><th></th></tr></thead>
+        <tbody>${f.map((r,i)=>`<tr>
+          <td style="color:#94a3b8;font-size:10px">${i+1}</td>
+          <td><strong style="font-size:12px">${r.empresa||'—'}</strong></td>
+          <td style="font-size:12px">${r.setor||'—'}</td>
+          <td style="font-size:12px">${r.funcao||'—'}</td>
+          <td style="font-size:12px">${r.atividade||'—'}</td>
+          <td style="font-size:11px;white-space:nowrap">${r.data||'—'}</td>
+          <td style="font-size:11px">${r.hora||'—'}</td>
+          <td><span class="tag ${tcls(r.scores?.Classificacao)}">${r.scores?.Classificacao||'—'}</span></td>
+          <td style="font-weight:700;font-size:13px;color:#1e293b">${r.scores?.Geral||'—'}</td>
+          <td><button class="btn btn-gray btn-sm" onclick="toggleDet('${r.id}')">↓</button></td>
+        </tr>
+        <tr id="det-${r.id}" style="display:none"><td colspan="10" style="padding:0">
+          <div style="padding:12px 16px;background:#f8fafc;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div><div style="font-size:10px;font-weight:700;color:var(--gray);margin-bottom:8px;text-transform:uppercase">Scores por grupo</div>
+            ${Object.entries(GIDS).map(([g,ids])=>{ const avg=gAvg(r,ids); const l=lc(avg); return`<div class="bar-row" style="margin-bottom:4px"><div class="blbl" style="width:90px;font-size:10px">${g}</div><div class="btrack" style="height:14px"><div class="bfill" style="width:${Math.max(Math.round((avg/5)*100),3)}%;background:${l.bg};color:${l.c};font-size:9px">${avg}</div></div></div>`; }).join('')}</div>
+            <div><div style="font-size:10px;font-weight:700;color:var(--gray);margin-bottom:8px;text-transform:uppercase">Detalhes</div>
+            <div style="font-size:11px;color:#374151"><strong>Tempo na função:</strong> ${r.tempo||'—'}</div>
+            <div style="font-size:11px;color:#374151;margin-top:4px"><strong>Satisfação geral:</strong> ${r.respostas?.satisfacao||'—'}/5 ⭐</div>
+            <div style="font-size:11px;color:#374151;margin-top:4px"><strong>Score Geral:</strong> ${r.scores?.Geral||'—'}/5</div></div>
+          </div>
+        </td></tr>`).join('')}
+        </tbody></table>
+      </div>
+    </div>`}
+  </div>`;
+}
+
+function toggleDet(id) { const el=document.getElementById(`det-${id}`); if(el) el.style.display=el.style.display==='none'||!el.style.display?'table-row':'none'; }
+
+function exportCSV() {
+  const f = filtradas();
+  const ids = Object.keys(GIDS).flatMap(g=>GIDS[g]);
+  const h = ['ID','Empresa','Setor','Função','Atividade','Tempo','Data','Hora','Score Geral','Classificação',...ids].join(',');
+  const rows = f.map(r=>[r.id||'',r.empresa||'',r.setor||'',r.funcao||'',r.atividade||'',r.tempo||'',r.data||'',r.hora||'',r.scores?.Geral||'',r.scores?.Classificacao||'',...ids.map(id=>r.respostas?.[id]||'')].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
+  const blob = new Blob(['\uFEFF',[h,...rows].join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='respostas_sst.csv'; a.click();
+}
+
+async function clearAll() {
+  if (!confirm(`Apagar TODAS as ${respostas.length} respostas? Esta ação é irreversível.`)) return;
+  const { error } = await supabase.from('respostas').delete().neq('id','__none__');
+  if (error) { alert('Erro: '+error.message); return; }
+  respostas=[]; relatorio=''; planoAcao=[]; riscos=[];
+  renderAdmin();
+}
+
+function buildRel(f) {
+  return `<div class="acontent">
+    <div class="ptitle">Relatório Técnico</div><div class="psub">Análise consolidada gerada por IA com base na NR-1 Cap. 1.5</div>
+    ${fBar()}
+    ${!f.length?`<div class="empty">Sem respostas para analisar.</div>`:''}
+    ${!relatorio&&!loading.rel&&f.length?`<div class="card" style="text-align:center;padding:28px">
+      <div style="font-size:13px;color:var(--gray);margin-bottom:14px">${f.length} resposta${f.length>1?'s':''} selecionada${f.length>1?'s':''} para análise</div>
+      <button class="btn btn-p" onclick="gerarRel()">Gerar Relatório com IA</button>
+    </div>`:''}
+    ${loading.rel?`<div class="card" style="text-align:center;padding:28px"><span class="spin"></span><div style="font-size:13px;color:var(--gray);margin-top:10px">Gerando relatório técnico...</div></div>`:''}
+    ${relatorio?`<div style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="btn btn-gray btn-sm" onclick="relatorio='';renderAdmin()">Limpar</button>
+      <button class="btn btn-p btn-sm" onclick="gerarRel()">Regenerar</button>
+    </div><div class="card"><div class="rmd">${md2h(relatorio)}</div></div>`:''}
+  </div>`;
+}
+
+function buildPlano(f) {
+  return `<div class="acontent">
+    <div class="ptitle">Plano de Ação</div><div class="psub">Gerado por IA com base nos riscos identificados</div>
+    ${fBar()}
+    ${!f.length?`<div class="empty">Sem respostas para analisar.</div>`:''}
+    ${!planoAcao.length&&!loading.plano&&f.length?`<div class="card" style="text-align:center;padding:28px">
+      <button class="btn btn-a" onclick="gerarPlano()">Gerar Plano de Ação</button>
+    </div>`:''}
+    ${loading.plano?`<div class="card" style="text-align:center;padding:28px"><span class="spin"></span><div style="font-size:13px;color:var(--gray);margin-top:10px">Gerando plano...</div></div>`:''}
+    ${planoAcao.length?`<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <button class="btn btn-gray btn-sm" onclick="planoAcao=[];renderAdmin()">Limpar</button>
+      <button class="btn btn-a btn-sm" onclick="gerarPlano()">Regenerar</button>
+      <button class="btn btn-g btn-sm" onclick="exportPlano()">⬇ CSV</button>
+    </div>
+    <div class="card" style="overflow-x:auto;padding:0">
+      <table class="plan-tbl"><thead><tr><th>#</th><th>Ação Corretiva</th><th>Responsável</th><th>Prazo</th><th>Prioridade</th><th>Indicador</th></tr></thead>
+      <tbody>${planoAcao.map((p,i)=>`<tr>
+        <td style="color:#94a3b8;text-align:center;font-size:10px">${i+1}</td>
+        <td><input value="${p.acao||''}" onchange="planoAcao[${i}].acao=this.value"/></td>
+        <td><input value="${p.responsavel||''}" onchange="planoAcao[${i}].responsavel=this.value" style="width:100px"/></td>
+        <td><input value="${p.prazo||''}" onchange="planoAcao[${i}].prazo=this.value" style="width:80px"/></td>
+        <td><span class="${p.prioridade==='Alta'?'pa':p.prioridade==='Média'?'pm':'pb'}">${p.prioridade||'—'}</span></td>
+        <td><input value="${p.indicador||''}" onchange="planoAcao[${i}].indicador=this.value"/></td>
+      </tr>`).join('')}</tbody></table>
+    </div>`:''}
+  </div>`;
+}
+
+function buildRiscos(f) {
+  const nc={baixo:{bg:'#d1fae5',c:'#065f46'},médio:{bg:'#fef3c7',c:'#92400e'},alto:{bg:'#fee2e2',c:'#991b1b'},crítico:{bg:'#dc2626',c:'#fff'}};
+  return `<div class="acontent">
+    <div class="ptitle">Caracterização de Risco</div><div class="psub">Classificação conforme NR-1 e hierarquia de controles</div>
+    ${fBar()}
+    ${!f.length?`<div class="empty">Sem respostas para analisar.</div>`:''}
+    ${!riscos.length&&!loading.risco&&f.length?`<div class="card" style="text-align:center;padding:28px">
+      <button class="btn btn-r" onclick="gerarRiscos()">Caracterizar Riscos com IA</button>
+    </div>`:''}
+    ${loading.risco?`<div class="card" style="text-align:center;padding:28px"><span class="spin"></span><div style="font-size:13px;color:var(--gray);margin-top:10px">Classificando riscos...</div></div>`:''}
+    ${riscos.length?`<div style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="btn btn-gray btn-sm" onclick="riscos=[];renderAdmin()">Limpar</button>
+      <button class="btn btn-r btn-sm" onclick="gerarRiscos()">Regenerar</button>
+    </div>
+    <div class="g4" style="margin-bottom:12px">
+      ${['baixo','médio','alto','crítico'].map(n=>{ const cnt=riscos.filter(r=>(r.nivel||'').toLowerCase()===n).length; const l=nc[n]||nc['médio']; return`<div class="metric" style="background:${l.bg}"><div class="mval" style="color:${l.c}">${cnt}</div><div class="mlbl" style="color:${l.c}">${n.charAt(0).toUpperCase()+n.slice(1)}</div></div>`; }).join('')}
+    </div>
+    <div class="card" style="overflow-x:auto;padding:0">
+      <table><thead><tr><th>Tipo</th><th>Descrição</th><th>Prob.</th><th>Sev.</th><th>Nível</th><th>Medida de Controle</th></tr></thead>
+      <tbody>${riscos.map(r=>{ const n=(r.nivel||'').toLowerCase(); const l=nc[n]||{bg:'#f8fafc',c:'#374151'}; const tc={Físico:'#bfdbfe',Químico:'#fde68a',Biológico:'#bbf7d0',Ergonômico:'#ddd6fe',Acidente:'#fecaca'}; return`<tr>
+        <td><span style="background:${tc[r.tipo]||'#f1f5f9'};color:#1e293b;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${r.tipo||'—'}</span></td>
+        <td style="font-size:11px;max-width:180px">${r.descricao||'—'}</td>
+        <td style="text-align:center;font-weight:700">${r.probabilidade||'—'}/3</td>
+        <td style="text-align:center;font-weight:700">${r.severidade||'—'}/3</td>
+        <td><div style="background:${l.bg};color:${l.c};padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;text-align:center">${r.nivel||'—'}</div></td>
+        <td style="font-size:11px;max-width:200px">${r.medida||'—'}</td>
+      </tr>`; }).join('')}</tbody></table>
+    </div>`:''}
+  </div>`;
+}
+
+function buildCtx(f) {
+  const gavgs = {};
+  Object.keys(GIDS).forEach(g=>{ const vals=f.map(r=>gAvg(r,GIDS[g])).filter(v=>v>0); gavgs[g]=vals.length?Math.round((vals.reduce((a,b)=>a+b,0)/vals.length)*10)/10:0; });
+  const cc = {};
+  f.forEach(r=>{ const c=r.scores?.Classificacao||'Baixo'; cc[c]=(cc[c]||0)+1; });
+  return `Total de respostas: ${f.length}
+Empresas: ${[...new Set(f.map(r=>r.empresa))].join(', ')}
+Setores: ${[...new Set(f.map(r=>r.setor))].join(', ')}
+Scores médios por grupo: ${Object.entries(gavgs).map(([g,v])=>`${g}=${v}/5`).join(', ')}
+Classificações: ${Object.entries(cc).map(([k,v])=>`${k}: ${v}`).join(', ')}`;
+}
+
+async function callAI(sys, usr, tok=1000) {
+  const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:tok,system:sys,messages:[{role:'user',content:usr}]})});
+  const d = await res.json(); if(d.error) throw new Error(d.error.message); return d.content[0].text;
+}
+
+async function gerarRel() {
+  const f = filtradas(); if (!f.length) return;
+  loading.rel=true; renderAdmin();
+  try { relatorio=await callAI('Você é especialista em SST com domínio do Cap. 1.5 da NR-1. Gere um Relatório Técnico de Avaliação de Riscos Psicossociais com: 1) Resumo Executivo, 2) Pontos Críticos por grupo temático, 3) Análise por Setor/GHE, 4) Conclusões e Recomendações. Linguagem técnica formal. Formato markdown.',buildCtx(f),2000); }
+  catch(e) { relatorio='**Erro:** '+e.message; }
+  loading.rel=false; renderAdmin();
+}
+
+async function gerarPlano() {
+  const f = filtradas(); if (!f.length) return;
+  loading.plano=true; renderAdmin();
+  try {
+    const txt=await callAI('Especialista em SST. Crie Plano de Ação. APENAS array JSON: [{"acao":"...","responsavel":"...","prazo":"30 dias","prioridade":"Alta","indicador":"..."}]. Máx 10 itens. Prioridade: Alta, Média ou Baixa.',buildCtx(f),1000);
+    const c=txt.replace(/```json|```/g,'').trim(); const arr=JSON.parse(c.slice(c.indexOf('['),c.lastIndexOf(']')+1)); planoAcao=Array.isArray(arr)?arr:[];
+  } catch(e) { alert('Erro: '+e.message); planoAcao=[]; }
+  loading.plano=false; renderAdmin();
+}
+
+async function gerarRiscos() {
+  const f = filtradas(); if (!f.length) return;
+  loading.risco=true; renderAdmin();
+  try {
+    const txt=await callAI('Especialista em SST. Classifique riscos. APENAS array JSON: [{"tipo":"Ergonômico","descricao":"...","probabilidade":2,"severidade":3,"nivel":"alto","medida":"..."}]. Tipos: Físico,Químico,Biológico,Ergonômico,Acidente. nivel: baixo,médio,alto,crítico. Máx 12.',buildCtx(f),1000);
+    const c=txt.replace(/```json|```/g,'').trim(); const arr=JSON.parse(c.slice(c.indexOf('['),c.lastIndexOf(']')+1)); riscos=Array.isArray(arr)?arr:[];
+  } catch(e) { alert('Erro: '+e.message); riscos=[]; }
+  loading.risco=false; renderAdmin();
+}
+
+function exportPlano() {
+  const h=['Ação','Responsável','Prazo','Prioridade','Indicador'].join(',');
+  const rows=planoAcao.map(p=>[p.acao,p.responsavel,p.prazo,p.prioridade,p.indicador].map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(','));
+  const blob=new Blob(['\uFEFF',[h,...rows].join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='plano_acao_sst.csv';a.click();
+}
+
+function md2h(md) {
+  return md.replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/^---$/gm,'<hr>').replace(/^[-*] (.+)$/gm,'<li>$1</li>').replace(/(<li>.*?<\/li>\n?)+/gs,m=>`<ul>${m}</ul>`).replace(/<\/ul>\s*<ul>/g,'').replace(/\n\n+/g,'</p><p>').replace(/<p><\/p>/g,'');
+}
+</script>
+</body>
+</html>

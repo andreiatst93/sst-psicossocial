@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Distribuição — SST Psicossocial</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,sans-serif;background:#f1f5f9;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .card{background:#fff;border-radius:16px;padding:32px;max-width:560px;width:100%;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+  h1{font-size:22px;font-weight:700;color:#1a3a5c;margin-bottom:6px}
+  .sub{font-size:14px;color:#64748b;margin-bottom:28px;line-height:1.5}
+  #qr-wrap{width:240px;height:240px;margin:0 auto 20px;background:#f8fafc;border:2px dashed #cbd5e1;border-radius:12px;display:flex;align-items:center;justify-content:center}
+  #qr-canvas{display:none}
+  .url-box{background:#1a3a5c;color:#fff;border-radius:10px;padding:14px 18px;font-size:13px;font-family:monospace;word-break:break-all;margin-bottom:20px;text-align:left}
+  .url-label{font-size:10px;opacity:.65;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+  .field-wrap{margin-bottom:20px;text-align:left}
+  label{font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+  input{width:100%;padding:11px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;color:#1e293b;font-family:monospace;outline:none;transition:border-color .15s}
+  input:focus{border-color:#1a3a5c}
+  .btn{width:100%;padding:13px;background:#1a3a5c;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px}
+  .btn:hover{background:#0f2645}
+  .btn-out{background:#fff;color:#1a3a5c;border:2px solid #1a3a5c}
+  .btn-out:hover{background:#f0f5fa}
+  .hint{font-size:11px;color:#94a3b8;line-height:1.6;margin-top:16px}
+  .badge{display:inline-flex;padding:3px 10px;background:#d1fae5;color:#065f46;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:16px}
+  @media print{body{background:#fff} .no-print{display:none} .card{box-shadow:none;border:1px solid #e2e8f0}}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="badge">SST · NR-1 Cap. 1.5 · ARM Previne</div>
+  <h1>Pesquisa de Riscos Psicossociais</h1>
+  <p class="sub">Acesse o QR Code abaixo ou o link para responder à avaliação.<br>Suas respostas são anônimas e confidenciais.</p>
+
+  <div class="field-wrap no-print">
+    <label>URL do seu site na Vercel</label>
+    <input type="text" id="url-input" placeholder="https://sst-psicossocial.vercel.app" oninput="generateQR()"/>
+  </div>
+
+  <div id="qr-wrap">
+    <div id="qr-placeholder" style="text-align:center;color:#94a3b8;padding:20px">
+      <div style="font-size:32px;margin-bottom:8px">⬆</div>
+      <div style="font-size:12px">Cole a URL acima<br>para gerar o QR Code</div>
+    </div>
+    <canvas id="qr-canvas"></canvas>
+  </div>
+
+  <div class="url-box">
+    <div class="url-label">Link direto</div>
+    <div id="url-display">Cole a URL do seu site acima</div>
+  </div>
+
+  <button class="btn no-print" onclick="window.print()">🖨 Imprimir / Salvar PDF</button>
+  <button class="btn btn-out no-print" onclick="copyLink()">📋 Copiar Link</button>
+
+  <p class="hint">
+    <strong>Como distribuir:</strong> imprima este QR Code e cole em locais visíveis,<br>
+    ou envie o link por WhatsApp / e-mail para os funcionários.
+  </p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+let qrCode = null;
+
+function generateQR() {
+  const url = document.getElementById('url-input').value.trim();
+  const display = document.getElementById('url-display');
+  const placeholder = document.getElementById('qr-placeholder');
+  const canvas = document.getElementById('qr-canvas');
+  const wrap = document.getElementById('qr-wrap');
+
+  display.textContent = url || 'Cole a URL do seu site acima';
+
+  if (!url || !url.startsWith('http')) {
+    placeholder.style.display = 'block';
+    canvas.style.display = 'none';
+    return;
+  }
+
+  placeholder.style.display = 'none';
+  canvas.style.display = 'block';
+
+  if (qrCode) { wrap.innerHTML = ''; wrap.appendChild(canvas); }
+
+  try {
+    qrCode = new QRCode(canvas, {
+      text: url,
+      width: 220,
+      height: 220,
+      colorDark: '#1a3a5c',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  } catch(e) {
+    // QRCode lib creates its own canvas/img — recreate
+    wrap.innerHTML = '<canvas id="qr-canvas" style="display:block"></canvas>';
+    const newCanvas = document.getElementById('qr-canvas');
+    qrCode = new QRCode(newCanvas, {
+      text: url, width:220, height:220,
+      colorDark:'#1a3a5c', colorLight:'#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  }
+}
+
+function copyLink() {
+  const url = document.getElementById('url-input').value.trim();
+  if (!url) { alert('Cole a URL primeiro.'); return; }
+  navigator.clipboard.writeText(url).then(() => alert('Link copiado!')).catch(() => {
+    const el = document.createElement('textarea');
+    el.value = url; document.body.appendChild(el); el.select();
+    document.execCommand('copy'); document.body.removeChild(el);
+    alert('Link copiado!');
+  });
+}
+</script>
+</body>
+</html>
