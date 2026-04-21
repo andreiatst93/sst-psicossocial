@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>SST Psicossocial — ARM Previne</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -147,6 +147,17 @@ code{background:#f1f5f9;padding:2px 6px;border-radius:4px;font-family:monospace;
 </style>
 </head>
 <body>
+<div id="page-loading" style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f1f5f9;z-index:9999;font-family:system-ui,sans-serif">
+  <div style="width:44px;height:44px;background:#1a3a5c;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px">
+    <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <div style="font-size:15px;font-weight:600;color:#1e293b;margin-bottom:6px">SST Psicossocial</div>
+  <div style="font-size:13px;color:#64748b;margin-bottom:20px">ARM Previne · NR-1 Cap. 1.5</div>
+  <div style="width:200px;height:3px;background:#e2e8f0;border-radius:2px;overflow:hidden">
+    <div id="ldbar" style="width:40%;height:100%;background:#1a3a5c;border-radius:2px;transition:width .3s"></div>
+  </div>
+  <div id="ld-msg" style="font-size:11px;color:#94a3b8;margin-top:10px">Iniciando...</div>
+</div>
 
 <!-- SETUP WIZARD (aparece se não configurado) -->
 <div id="setup-wrap" style="display:none">
@@ -389,18 +400,41 @@ let charts={};
 
 // ── BOOT ──
 window.addEventListener('load', () => {
-  // Tenta carregar credenciais salvas anteriormente
-  let url = '', key = '';
-  try { url = localStorage.getItem('sst_sb_url') || ''; } catch {}
-  try { key = localStorage.getItem('sst_sb_key') || ''; } catch {}
-  if (url && key && initSupabase(url, key)) {
-    initApp();
-  } else {
-    // Mostra wizard de configuração
-    const sw = document.getElementById('setup-wrap');
-    if (sw) { sw.style.display = 'flex'; }
-    else { document.body.style.background = '#f1f5f9'; initApp(); }
+  const ldbar = document.getElementById('ldbar');
+  const ldmsg = document.getElementById('ld-msg');
+  const ldscreen = document.getElementById('page-loading');
+  function setLd(pct, msg) {
+    if(ldbar) ldbar.style.width = pct + '%';
+    if(ldmsg) ldmsg.textContent = msg;
   }
+  function hideLd() {
+    if(ldscreen) { ldscreen.style.opacity='0'; ldscreen.style.transition='opacity .3s'; setTimeout(()=>ldscreen.style.display='none',350); }
+  }
+  setLd(30, 'Carregando bibliotecas...');
+  // Aguarda Supabase carregar
+  let attempts = 0;
+  const tryInit = setInterval(() => {
+    attempts++;
+    setLd(Math.min(30 + attempts * 10, 80), 'Iniciando...');
+    if (window.supabase || attempts > 20) {
+      clearInterval(tryInit);
+      setLd(90, 'Verificando configuração...');
+      let url = '', key = '';
+      try { url = localStorage.getItem('sst_sb_url') || ''; } catch {}
+      try { key = localStorage.getItem('sst_sb_key') || ''; } catch {}
+      if (url && key && initSupabase(url, key)) {
+        setLd(100, 'Pronto!');
+        setTimeout(() => { hideLd(); initApp(); }, 200);
+      } else {
+        setLd(100, 'Configuração necessária');
+        setTimeout(() => {
+          hideLd();
+          const sw = document.getElementById('setup-wrap');
+          if (sw) sw.style.display = 'flex';
+        }, 200);
+      }
+    }
+  }, 200);
 });
 
 async function initApp() {
