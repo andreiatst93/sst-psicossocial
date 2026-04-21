@@ -274,7 +274,7 @@ CREATE POLICY "allow_select" ON respostas FOR SELECT USING (true);</div>
 
 <script>
 // ── CONFIG ──
-const ADMIN_PASS = typeof __ADMIN_PASS__ !== 'undefined' ? __ADMIN_PASS__ : 'admin123';
+const ADMIN_PASS = (function(){ try { return localStorage.getItem('sst_admin_pass') || 'admin123'; } catch { return 'admin123'; } })();
 const SMAP = {Nunca:1,Raramente:2,'Às vezes':3,Frequentemente:4,Sempre:5};
 const SLBLS = ['','Muito insatisfeito','Insatisfeito','Regular','Satisfeito','Muito satisfeito'];
 const FREQ = ['Nunca','Raramente','Às vezes','Frequentemente','Sempre'];
@@ -309,7 +309,6 @@ async function saveCredentials() {
   err.style.display='none';
   const ok = await testConnection().catch(() => false);
   if (!ok) { err.style.display='block'; err.textContent='Não foi possível conectar. Verifique as credenciais e se a tabela foi criada.'; return; }
-  // Persiste localmente para reuso sem re-digitar
   try { localStorage.setItem('sst_sb_url', url); localStorage.setItem('sst_sb_key', key); } catch {}
   nextSetup(3);
 }
@@ -390,15 +389,17 @@ let charts={};
 
 // ── BOOT ──
 window.addEventListener('load', () => {
-  // Lê credenciais das variáveis de ambiente Vite (build-time)
-  // Em produção: defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY na Vercel
-  const url = typeof __SUPABASE_URL__ !== 'undefined' ? __SUPABASE_URL__ : '';
-  const key = typeof __SUPABASE_KEY__ !== 'undefined' ? __SUPABASE_KEY__ : '';
+  // Tenta carregar credenciais salvas anteriormente
+  let url = '', key = '';
+  try { url = localStorage.getItem('sst_sb_url') || ''; } catch {}
+  try { key = localStorage.getItem('sst_sb_key') || ''; } catch {}
   if (url && key && initSupabase(url, key)) {
     initApp();
   } else {
-    // Fallback: wizard manual (para desenvolvimento local sem .env)
-    document.getElementById('setup-wrap').style.display = 'flex';
+    // Mostra wizard de configuração
+    const sw = document.getElementById('setup-wrap');
+    if (sw) { sw.style.display = 'flex'; }
+    else { document.body.style.background = '#f1f5f9'; initApp(); }
   }
 });
 
