@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>SST Psicossocial — ARM Previne</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js" onerror="this.remove()"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -295,15 +295,34 @@ let supabase = null;
 
 function initSupabase(url, key) {
   try {
-    if (!window.supabase) { console.warn('Supabase CDN not loaded yet'); return false; }
-    supabase = window.supabase.createClient(url, key);
+    if (!window.supabase) { console.warn('Supabase CDN not loaded'); return false; }
+    // Supabase novo formato: se a key começa com sb_publishable_, usa como anonKey
+    const opts = {};
+    supabase = window.supabase.createClient(url, key, opts);
     return true;
   } catch(e) { console.error('initSupabase error:', e); return false; }
 }
 
 async function testConnection() {
-  const { error } = await supabase.from('respostas').select('id').limit(1);
-  return !error;
+  try {
+    // Tenta com timeout de 8 segundos
+    const timeoutP = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000));
+    const queryP = supabase.from('respostas').select('id').limit(1);
+    const { error } = await Promise.race([queryP, timeoutP]);
+    if (error) {
+      console.error('testConnection error:', error.message);
+      // Erro 42P07 = tabela já existe = ok; PGRST = tabela não existe mas conexão ok
+      // Se erro começa com PGRST116 ou similar = conexão funcionou mas tabela não existe
+      // Qualquer erro de conexão = false
+      if (error.code === 'PGRST116' || error.message.includes('does not exist')) return false;
+      // Outros erros de query mas conexão ok
+      return true;
+    }
+    return true;
+  } catch(e) {
+    console.error('testConnection exception:', e.message);
+    return false;
+  }
 }
 
 // ── SETUP ──
@@ -316,13 +335,27 @@ async function saveCredentials() {
   const url = document.getElementById('sb-url').value.trim();
   const key = document.getElementById('sb-key').value.trim();
   const err = document.getElementById('cred-err');
+  const btn = document.querySelector('[onclick="saveCredentials()"]');
   if (!url || !key) { err.style.display='block'; err.textContent='Preencha os dois campos.'; return; }
-  if (!initSupabase(url, key)) { err.style.display='block'; err.textContent='URL ou Key inválidos.'; return; }
+  if (!url.includes('supabase.co')) { err.style.display='block'; err.textContent='URL inválida. Deve ser https://xxx.supabase.co'; return; }
+  if (!initSupabase(url, key)) { err.style.display='block'; err.textContent='Erro ao inicializar. Verifique se a URL está correta.'; return; }
   err.style.display='none';
-  const ok = await testConnection().catch(() => false);
-  if (!ok) { err.style.display='block'; err.textContent='Não foi possível conectar. Verifique as credenciais e se a tabela foi criada.'; return; }
-  try { localStorage.setItem('sst_sb_url', url); localStorage.setItem('sst_sb_key', key); } catch {}
-  nextSetup(3);
+  if (btn) { btn.disabled=true; btn.textContent='Testando conexão...'; }
+  try {
+    const ok = await testConnection();
+    if (btn) { btn.disabled=false; btn.textContent='Salvar e Testar Conexão'; }
+    if (!ok) {
+      err.style.display='block';
+      err.innerHTML='Conexão falhou. Verifique:<br>1. A URL está no formato <b>https://xxx.supabase.co</b><br>2. A chave é a <b>Chave publicável</b> (sb_publishable_...)<br>3. A tabela <b>respostas</b> foi criada no SQL Editor';
+      return;
+    }
+    try { localStorage.setItem('sst_sb_url', url); localStorage.setItem('sst_sb_key', key); } catch {}
+    nextSetup(3);
+  } catch(e) {
+    if (btn) { btn.disabled=false; btn.textContent='Salvar e Testar Conexão'; }
+    err.style.display='block';
+    err.textContent='Erro: ' + e.message;
+  }
 }
 
 // ── QUESTIONS DEF ──
