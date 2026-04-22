@@ -147,20 +147,9 @@ code{background:#f1f5f9;padding:2px 6px;border-radius:4px;font-family:monospace;
 </style>
 </head>
 <body>
-<div id="page-loading" style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f1f5f9;z-index:9999;font-family:system-ui,sans-serif">
-  <div style="width:44px;height:44px;background:#1a3a5c;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px">
-    <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </div>
-  <div style="font-size:15px;font-weight:600;color:#1e293b;margin-bottom:6px">SST Psicossocial</div>
-  <div style="font-size:13px;color:#64748b;margin-bottom:20px">ARM Previne · NR-1 Cap. 1.5</div>
-  <div style="width:200px;height:3px;background:#e2e8f0;border-radius:2px;overflow:hidden">
-    <div id="ldbar" style="width:40%;height:100%;background:#1a3a5c;border-radius:2px;transition:width .3s"></div>
-  </div>
-  <div id="ld-msg" style="font-size:11px;color:#94a3b8;margin-top:10px">Iniciando...</div>
-</div>
 
 <!-- SETUP WIZARD (aparece se não configurado) -->
-<div id="setup-wrap" style="display:none">
+<div id="setup-wrap" style="display:flex">
   <div class="setup-card">
     <div style="text-align:center;margin-bottom:24px">
       <div style="font-size:22px;font-weight:700;color:#1e293b;margin-bottom:6px">Configuração Inicial</div>
@@ -433,83 +422,25 @@ let relatorio='', planoAcao=[], riscos=[], loading={rel:false,plano:false,risco:
 let charts={};
 
 // ── BOOT ──
-// Boot com proteção total — nunca fica travado
-(function boot() {
-  var MAX_WAIT = 3000; // 3 segundos máximo
-  var started = Date.now();
-
-  function hideLd() {
-    var s = document.getElementById('page-loading');
-    if (s) s.style.display = 'none';
-  }
-
-  function showWizard() {
-    hideLd();
-    var sw = document.getElementById('setup-wrap');
-    if (sw) sw.style.display = 'flex';
-  }
-
-  function tryStart() {
-    var url = '', key = '';
-    try { url = localStorage.getItem('sst_sb_url') || ''; } catch(e) {}
-    try { key = localStorage.getItem('sst_sb_key') || ''; } catch(e) {}
-
-    if (window.supabase) {
-      hideLd();
-      if (url && key && initSupabase(url, key)) {
-        initApp();
-      } else {
-        showWizard();
-      }
-      return true;
-    }
-
-    // Supabase ainda não carregou
-    if (Date.now() - started > MAX_WAIT) {
-      // Timeout — mostra wizard mesmo sem Supabase
-      showWizard();
-      return true;
-    }
-    return false;
-  }
-
-  // Tenta imediatamente
-  if (!tryStart()) {
-    // Tenta a cada 100ms até MAX_WAIT
-    var timer = setInterval(function() {
-      if (tryStart()) clearInterval(timer);
-    }, 100);
-    // Garantia absoluta: após MAX_WAIT mostra wizard
-    setTimeout(function() {
-      clearInterval(timer);
-      hideLd();
-      var sw = document.getElementById('setup-wrap');
-      var sel = document.getElementById('selector');
-      if (sw && sw.style.display === 'none' && (!sel || sel.style.display === 'none')) {
-        showWizard();
-      }
-    }, MAX_WAIT + 500);
-  }
-})();
-
-window.addEventListener('load', function() {
-  // Dispara boot novamente quando DOM estiver 100% pronto
+// ── BOOT ──
+function startApp() {
   var url = '', key = '';
   try { url = localStorage.getItem('sst_sb_url') || ''; } catch(e) {}
   try { key = localStorage.getItem('sst_sb_key') || ''; } catch(e) {}
-  var sel = document.getElementById('selector');
-  var sw = document.getElementById('setup-wrap');
-  var isVisible = function(el) { return el && el.style.display !== 'none'; };
-  // Se nada está visível ainda, mostra wizard
-  if (!isVisible(sel) && !isVisible(sw)) {
-    document.getElementById('page-loading').style.display = 'none';
-    if (window.supabase && url && key && initSupabase(url, key)) {
-      initApp();
-    } else {
-      if (sw) sw.style.display = 'flex';
-    }
+  if (window.supabase && url && key && initSupabase(url, key)) {
+    initApp();
+  } else {
+    var sw = document.getElementById('setup-wrap');
+    if (sw) sw.style.display = 'flex';
   }
-});
+}
+// Tenta iniciar imediatamente e também no evento load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function() { setTimeout(startApp, 100); });
+} else {
+  setTimeout(startApp, 100);
+}
+window.addEventListener('load', function() { setTimeout(startApp, 200); });
 
 async function initApp() {
   hide('setup-wrap');
