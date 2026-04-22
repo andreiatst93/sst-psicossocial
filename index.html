@@ -433,25 +433,81 @@ let relatorio='', planoAcao=[], riscos=[], loading={rel:false,plano:false,risco:
 let charts={};
 
 // ── BOOT ──
-window.addEventListener('load', () => {
-  const ldscreen = document.getElementById('page-loading');
+// Boot com proteção total — nunca fica travado
+(function boot() {
+  var MAX_WAIT = 3000; // 3 segundos máximo
+  var started = Date.now();
+
   function hideLd() {
-    if(ldscreen) { ldscreen.style.display='none'; }
+    var s = document.getElementById('page-loading');
+    if (s) s.style.display = 'none';
   }
-  // Mostra o app imediatamente — sem esperar Supabase
-  hideLd();
-  let url = '', key = '';
-  try { url = localStorage.getItem('sst_sb_url') || ''; } catch {}
-  try { key = localStorage.getItem('sst_sb_key') || ''; } catch {}
-  // Se Supabase já carregou, tenta conectar
-  if (window.supabase && url && key && initSupabase(url, key)) {
-    initApp();
-  } else if (window.supabase && url && key) {
-    initApp();
-  } else {
-    // Mostra wizard de configuração direto
-    const sw = document.getElementById('setup-wrap');
+
+  function showWizard() {
+    hideLd();
+    var sw = document.getElementById('setup-wrap');
     if (sw) sw.style.display = 'flex';
+  }
+
+  function tryStart() {
+    var url = '', key = '';
+    try { url = localStorage.getItem('sst_sb_url') || ''; } catch(e) {}
+    try { key = localStorage.getItem('sst_sb_key') || ''; } catch(e) {}
+
+    if (window.supabase) {
+      hideLd();
+      if (url && key && initSupabase(url, key)) {
+        initApp();
+      } else {
+        showWizard();
+      }
+      return true;
+    }
+
+    // Supabase ainda não carregou
+    if (Date.now() - started > MAX_WAIT) {
+      // Timeout — mostra wizard mesmo sem Supabase
+      showWizard();
+      return true;
+    }
+    return false;
+  }
+
+  // Tenta imediatamente
+  if (!tryStart()) {
+    // Tenta a cada 100ms até MAX_WAIT
+    var timer = setInterval(function() {
+      if (tryStart()) clearInterval(timer);
+    }, 100);
+    // Garantia absoluta: após MAX_WAIT mostra wizard
+    setTimeout(function() {
+      clearInterval(timer);
+      hideLd();
+      var sw = document.getElementById('setup-wrap');
+      var sel = document.getElementById('selector');
+      if (sw && sw.style.display === 'none' && (!sel || sel.style.display === 'none')) {
+        showWizard();
+      }
+    }, MAX_WAIT + 500);
+  }
+})();
+
+window.addEventListener('load', function() {
+  // Dispara boot novamente quando DOM estiver 100% pronto
+  var url = '', key = '';
+  try { url = localStorage.getItem('sst_sb_url') || ''; } catch(e) {}
+  try { key = localStorage.getItem('sst_sb_key') || ''; } catch(e) {}
+  var sel = document.getElementById('selector');
+  var sw = document.getElementById('setup-wrap');
+  var isVisible = function(el) { return el && el.style.display !== 'none'; };
+  // Se nada está visível ainda, mostra wizard
+  if (!isVisible(sel) && !isVisible(sw)) {
+    document.getElementById('page-loading').style.display = 'none';
+    if (window.supabase && url && key && initSupabase(url, key)) {
+      initApp();
+    } else {
+      if (sw) sw.style.display = 'flex';
+    }
   }
 });
 
