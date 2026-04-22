@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>SST Psicossocial — ARM Previne</title>
-<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js" onerror="this.remove()"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -295,9 +295,10 @@ let supabase = null;
 
 function initSupabase(url, key) {
   try {
+    if (!window.supabase) { console.warn('Supabase CDN not loaded yet'); return false; }
     supabase = window.supabase.createClient(url, key);
     return true;
-  } catch(e) { return false; }
+  } catch(e) { console.error('initSupabase error:', e); return false; }
 }
 
 async function testConnection() {
@@ -400,41 +401,25 @@ let charts={};
 
 // ── BOOT ──
 window.addEventListener('load', () => {
-  const ldbar = document.getElementById('ldbar');
-  const ldmsg = document.getElementById('ld-msg');
   const ldscreen = document.getElementById('page-loading');
-  function setLd(pct, msg) {
-    if(ldbar) ldbar.style.width = pct + '%';
-    if(ldmsg) ldmsg.textContent = msg;
-  }
   function hideLd() {
-    if(ldscreen) { ldscreen.style.opacity='0'; ldscreen.style.transition='opacity .3s'; setTimeout(()=>ldscreen.style.display='none',350); }
+    if(ldscreen) { ldscreen.style.display='none'; }
   }
-  setLd(30, 'Carregando bibliotecas...');
-  // Aguarda Supabase carregar
-  let attempts = 0;
-  const tryInit = setInterval(() => {
-    attempts++;
-    setLd(Math.min(30 + attempts * 10, 80), 'Iniciando...');
-    if (window.supabase || attempts > 20) {
-      clearInterval(tryInit);
-      setLd(90, 'Verificando configuração...');
-      let url = '', key = '';
-      try { url = localStorage.getItem('sst_sb_url') || ''; } catch {}
-      try { key = localStorage.getItem('sst_sb_key') || ''; } catch {}
-      if (url && key && initSupabase(url, key)) {
-        setLd(100, 'Pronto!');
-        setTimeout(() => { hideLd(); initApp(); }, 200);
-      } else {
-        setLd(100, 'Configuração necessária');
-        setTimeout(() => {
-          hideLd();
-          const sw = document.getElementById('setup-wrap');
-          if (sw) sw.style.display = 'flex';
-        }, 200);
-      }
-    }
-  }, 200);
+  // Mostra o app imediatamente — sem esperar Supabase
+  hideLd();
+  let url = '', key = '';
+  try { url = localStorage.getItem('sst_sb_url') || ''; } catch {}
+  try { key = localStorage.getItem('sst_sb_key') || ''; } catch {}
+  // Se Supabase já carregou, tenta conectar
+  if (window.supabase && url && key && initSupabase(url, key)) {
+    initApp();
+  } else if (window.supabase && url && key) {
+    initApp();
+  } else {
+    // Mostra wizard de configuração direto
+    const sw = document.getElementById('setup-wrap');
+    if (sw) sw.style.display = 'flex';
+  }
 });
 
 async function initApp() {
